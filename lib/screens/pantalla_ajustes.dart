@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/gasto.dart';
@@ -161,6 +162,136 @@ class PantallaAjustes extends StatelessWidget {
     }
   }
 
+  // Mostrar la copia de seguridad para copiarla
+  Future<void> _verCopia(BuildContext context) async {
+    final provider = context.read<GastosProvider>();
+    final texto = await provider.exportar();
+    if (!context.mounted) return;
+    final controller = TextEditingController(text: texto);
+    bool copiado = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateDialog) => AlertDialog(
+          title: const Text('Copia de seguridad'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Pulsa "Copiar" y pega el texto en Notas o envíatelo por '
+                  'correo. Guárdalo tal cual, sin modificarlo.',
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  readOnly: true,
+                  maxLines: 5,
+                  style: const TextStyle(fontSize: 11),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cerrar'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: texto));
+                await provider.marcarCopiaHecha();
+                setStateDialog(() => copiado = true);
+              },
+              icon: Icon(copiado ? Icons.check : Icons.copy),
+              label: Text(copiado ? '¡Copiado!' : 'Copiar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Restaurar los datos desde una copia pegada
+  Future<void> _restaurarCopia(BuildContext context) async {
+    final provider = context.read<GastosProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = TextEditingController();
+    String? error;
+
+    final cantidad = await showDialog<int>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateDialog) => AlertDialog(
+          title: const Text('Restaurar copia'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pega aquí el texto de tu copia. Se SUSTITUIRÁN todos los '
+                  'gastos y monedas que tienes ahora.',
+                  style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  maxLines: 5,
+                  style: const TextStyle(fontSize: 11),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Pega aquí la copia',
+                  ),
+                ),
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      error!,
+                      style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                try {
+                  final n = await provider.importar(controller.text);
+                  if (ctx.mounted) Navigator.pop(ctx, n);
+                } catch (_) {
+                  setStateDialog(
+                    () => error = 'El texto no es una copia válida. '
+                        'No se ha cambiado nada.',
+                  );
+                }
+              },
+              child: const Text('Sustituir mis datos'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (cantidad != null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Copia restaurada: $cantidad gastos.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<GastosProvider>();
@@ -197,6 +328,26 @@ class PantallaAjustes extends StatelessWidget {
               onTap: () => _editarTasa(context, m, tasas[m] ?? 1),
             );
           }),
+          const Divider(height: 32),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Copia de seguridad',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.copy_all),
+            title: const Text('Crear copia de seguridad'),
+            subtitle: const Text('Copia todos tus datos como texto'),
+            onTap: () => _verCopia(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.restore),
+            title: const Text('Restaurar desde copia'),
+            subtitle: const Text('Pega una copia y sustituye tus datos'),
+            onTap: () => _restaurarCopia(context),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(

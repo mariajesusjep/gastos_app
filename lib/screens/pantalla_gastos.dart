@@ -181,6 +181,33 @@ class PantallaGastos extends StatelessWidget {
             ),
           ),
 
+          // Aviso de copia de seguridad
+          if (provider.avisarCopia)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Card(
+                color: Theme.of(context).colorScheme.tertiaryContainer,
+                child: ListTile(
+                  leading: const Icon(Icons.backup),
+                  title: Text(
+                    provider.diasDesdeCopia == null
+                        ? 'Aún no has hecho ninguna copia de seguridad'
+                        : 'Hace ${provider.diasDesdeCopia} días de tu última copia',
+                  ),
+                  subtitle: const Text('Toca para hacer una ahora'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Recordármelo mañana',
+                    onPressed: provider.posponerAviso,
+                  ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PantallaAjustes()),
+                  ),
+                ),
+              ),
+            ),
+
           // Gastos del día
           Expanded(
             child: gastos.isEmpty
@@ -211,8 +238,11 @@ class PantallaGastos extends StatelessWidget {
                           }
                         },
                         child: ListTile(
-                          leading: CircleAvatar(
-                            child: Icon(iconoCategoria(item.categoria)),
+                         leading: CircleAvatar(
+                            child: Text(
+                              emojiCategoria(item.categoria),
+                              style: const TextStyle(fontSize: 20),
+                            ),
                           ),
                           title: Text(item.categoria),
                           subtitle: item.nota == null ? null : Text(item.nota!),

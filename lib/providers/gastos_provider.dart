@@ -12,6 +12,9 @@ class GastosProvider extends ChangeNotifier {
   Map<String, double> _tasas = Map.of(tasasPorDefecto);
     Map<String, String> _monedasPropias = {};
   // Quita la hora: 11/11/2026 15:30 -> 11/11/2026 00:00
+      DateTime? _ultimaCopia;
+      DateTime? _avisoPospuesto;
+      bool _hayGastos = false;
   static DateTime _soloFecha(DateTime f) => DateTime(f.year, f.month, f.day);
 
   DateTime get dia => _dia;
@@ -48,6 +51,9 @@ class GastosProvider extends ChangeNotifier {
     _tasas = await _bd.leerTasas();
     _monedasPropias = await _bd.leerMonedasPropias();
     monedas.addAll(_monedasPropias);
+    _ultimaCopia = await _bd.leerUltimaCopia();
+    _avisoPospuesto = await _bd.leerAvisoPospuesto();
+    _hayGastos = await _bd.hayGastos();
 
     final lunes = DateTime(_dia.year, _dia.month, _dia.day - (_dia.weekday - 1));
     final finSemana = DateTime(lunes.year, lunes.month, lunes.day + 7);
@@ -113,5 +119,52 @@ class GastosProvider extends ChangeNotifier {
     await _bd.guardarTasas(_tasas);
     notifyListeners();
     return true;
+  }
+    // Texto con una copia de todos los datos
+  Future<String> exportar() => _bd.exportarTodo();
+
+  // Sustituye todos los datos por los de una copia.
+  // Devuelve cuántos gastos se han importado.
+  Future<int> importar(String texto) async {
+    final cantidad = await _bd.importarTodo(texto);
+    // Quita las monedas propias antiguas; cargar() añade las de la copia
+    for (final codigo in _monedasPropias.keys) {
+      monedas.remove(codigo);
+    }
+    await cargar();
+    return cantidad;
+  }
+    // ---------- Recordatorio de copia de seguridad ----------
+
+  static const int diasEntreCopias = 7;
+
+  // Días desde la última copia (null si nunca has hecho una)
+  int? get diasDesdeCopia {
+    final ultima = _ultimaCopia;
+    return ultima == null ? null : DateTime.now().difference(ultima).inDays;
+  }
+
+  bool get avisarCopia {
+    if (!_hayGastos) return false;
+    final ahora = DateTime.now();
+    final pospuesto = _avisoPospuesto;
+    if (pospuesto != null && ahora.isBefore(pospuesto)) return false;
+    final dias = diasDesdeCopia;
+    return dias == null || dias >= diasEntreCopias;
+  }
+
+  Future<void> marcarCopiaHecha() async {
+    final ahora = DateTime.now();
+    _ultimaCopia = ahora;
+    await _bd.guardarUltimaCopia(ahora);
+    notifyListeners();
+  }
+
+  // "Recordármelo mañana"
+  Future<void> posponerAviso() async {
+    final manana = DateTime.now().add(const Duration(days: 1));
+    _avisoPospuesto = manana;
+    await _bd.guardarAvisoPospuesto(manana);
+    notifyListeners();
   }
 }

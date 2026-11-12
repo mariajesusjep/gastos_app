@@ -107,4 +107,78 @@ class BaseDatos {
     final todos = await _leerTodos();
     return todos.any((g) => g.moneda == codigo);
   }
+    // ---------- Copia de seguridad ----------
+
+  // Todo (gastos, monedas y tipos de cambio) en un único texto
+  Future<String> exportarTodo() async {
+    final gastos = await _leerTodos();
+    final copia = {
+      'version': 1,
+      'gastos': gastos.map((g) => g.toMap()).toList(),
+      'tasas': await leerTasas(),
+      'monedasPropias': await leerMonedasPropias(),
+    };
+    return jsonEncode(copia);
+  }
+
+  // Sustituye TODOS los datos por los de una copia.
+  // Primero lee y comprueba todo; si algo falla, no se toca nada.
+  Future<int> importarTodo(String texto) async {
+    final datos = jsonDecode(texto.trim()) as Map<String, dynamic>;
+
+    final gastos = (datos['gastos'] as List<dynamic>)
+        .map((e) => Gasto.fromMap(e as Map<String, dynamic>))
+        .toList();
+
+    final tasas = <String, double>{};
+    (datos['tasas'] as Map<String, dynamic>? ?? {}).forEach(
+      (moneda, valor) => tasas[moneda] = (valor as num).toDouble(),
+    );
+
+    final propias = <String, String>{};
+    (datos['monedasPropias'] as Map<String, dynamic>? ?? {}).forEach(
+      (codigo, simbolo) => propias[codigo] = simbolo as String,
+    );
+
+    // Todo correcto: ahora sí, guardamos
+    await _guardarTodos(gastos);
+    await guardarTasas(tasas);
+    await guardarMonedasPropias(propias);
+
+    final prefs = await SharedPreferences.getInstance();
+    final mayorId = gastos.fold<int>(
+      0,
+      (mayor, g) => (g.id ?? 0) > mayor ? (g.id ?? 0) : mayor,
+    );
+    await prefs.setInt(_claveSiguienteId, mayorId);
+    return gastos.length;
+  }
+    // ---------- Recordatorio de copia ----------
+
+  static const _claveUltimaCopia = 'ultima_copia';
+  static const _clavePospuesto = 'aviso_pospuesto';
+
+  Future<DateTime?> _leerFecha(String clave) async {
+    final prefs = await SharedPreferences.getInstance();
+    final texto = prefs.getString(clave);
+    return texto == null ? null : DateTime.tryParse(texto);
+  }
+
+  Future<void> _guardarFecha(String clave, DateTime fecha) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(clave, fecha.toIso8601String());
+  }
+
+  Future<DateTime?> leerUltimaCopia() => _leerFecha(_claveUltimaCopia);
+
+  Future<void> guardarUltimaCopia(DateTime fecha) =>
+      _guardarFecha(_claveUltimaCopia, fecha);
+
+  Future<DateTime?> leerAvisoPospuesto() => _leerFecha(_clavePospuesto);
+
+  Future<void> guardarAvisoPospuesto(DateTime fecha) =>
+      _guardarFecha(_clavePospuesto, fecha);
+
+  // ¿Hay algún gasto guardado (de cualquier mes)?
+  Future<bool> hayGastos() async => (await _leerTodos()).isNotEmpty;
 }

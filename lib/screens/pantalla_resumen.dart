@@ -50,7 +50,7 @@ class PantallaResumen extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(iconoCategoria(e.key), size: 20),
+                            Text(emojiCategoria(e.key), style: const TextStyle(fontSize: 18)),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(

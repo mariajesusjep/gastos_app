@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/gasto.dart';
 import '../providers/gastos_provider.dart';
+import '../utils/iconos.dart';
 
 class FormularioGastoModal extends StatefulWidget {
   final Gasto? gastoParaEditar;
@@ -170,7 +171,12 @@ class _FormularioGastoModalState extends State<FormularioGastoModal> {
                   prefixIcon: Icon(Icons.category),
                 ),
                 items: categorias
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .map(
+                      (c) => DropdownMenuItem(
+                        value: c,
+                        child: Text('${emojiCategoria(c)}  $c'),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _categoria = v!),
               ),

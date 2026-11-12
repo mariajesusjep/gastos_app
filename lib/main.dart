@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'providers/gastos_provider.dart';
@@ -23,6 +24,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mis gastos',
       debugShowCheckedModeBanner: false,
+      // Idioma español: calendario en español y semana desde el lunes
+      locale: const Locale('es'),
+      supportedLocales: const [Locale('es')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

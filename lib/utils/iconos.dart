@@ -1,22 +1,21 @@
-import 'package:flutter/material.dart';
-
-IconData iconoCategoria(String categoria) {
+// Emoji de cada categoría
+String emojiCategoria(String categoria) {
   switch (categoria) {
     case 'Comida':
-      return Icons.restaurant;
+      return '🍜';
     case 'Transporte':
-      return Icons.directions_bus;
+      return '🚌';
     case 'Fiesta':
-      return Icons.celebration;
+      return '🎉';
     case 'Casa':
-      return Icons.home;
+      return '🏠';
     case 'Salud':
-      return Icons.local_hospital;
+      return '💊';
     case 'Viajes':
-      return Icons.flight;
+      return '✈️';
     case 'Ropa':
-      return Icons.checkroom;
+      return '👚';
     default:
-      return Icons.receipt_long;
+      return '✨';
   }
 }

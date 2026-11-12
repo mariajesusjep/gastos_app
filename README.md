@@ -82,7 +82,7 @@ Requisitos: [Flutter](https://docs.flutter.dev/get-started/install) instalado.
 
 ```bash
 git clone https://github.com/mariajesusjep/gastos_app.git
-cd NOMBRE_DEL_REPOSITORIO
+cd gastos_app
 flutter pub get
 flutter run -d chrome --web-port 5000
 ```
@@ -173,7 +173,7 @@ Requirements: [Flutter](https://docs.flutter.dev/get-started/install) installed.
 
 ```bash
 git clone https://github.com/mariajesusjep/gastos_app.git
-cd REPOSITORY_NAME
+cd gastos_app
 flutter pub get
 flutter run -d chrome --web-port 5000
 ```
